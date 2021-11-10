@@ -12,17 +12,20 @@ def GetSystemDate():
     cur_time = datetime.datetime.now().strftime(ISOTIMEFORMAT)
     return cur_time
 
+
 def ReadIP(read_path):
     with open(read_path, 'r') as f:
         return f.readlines()
+
 
 def WriteFile(write_path, res):
     with open(write_path, 'a') as file_object:
         file_object.write(res)
 
-#ip_address代表要ping的ip；ip_num代表ping的次数,res代表存放数据的队列
+
+# ip_address代表要ping的ip；ip_num代表ping的次数,res代表存放数据的队列
 def get_ping_result(ip_address):
-    p = subprocess.Popen('ping %s -n 50' %ip_address,
+    p = subprocess.Popen('ping %s -n 50' % ip_address,
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,
@@ -37,7 +40,7 @@ def get_ping_result(ip_address):
     if match_receive:
         receive_count = int(match_receive.group()[6:])
 
-    if receive_count > 0:  #接受到的反馈大于0，表示网络通
+    if receive_count > 0:  # 接受到的反馈大于0，表示网络通
         reg_min_time = '最短 = \d+ms'
         reg_max_time = '最长 = \d+ms'
         reg_avg_time = '平均 = \d+ms'
@@ -51,27 +54,54 @@ def get_ping_result(ip_address):
         match_avg_time = re.search(reg_avg_time, out)
         avg_time = int(match_avg_time.group()[5:-2])
 
-        return ip_address+','+str(receive_count)+','+str(min_time)+'/'+str(max_time)+'/'+str(avg_time)
+        return ip_address + ',' + str(receive_count) + ',' + str(min_time) + '/' + str(max_time) + '/' + str(avg_time)
     else:
-        return ip_address+','+'0'+','+'connection timeout'
+        return ip_address + ',' + '0' + ',' + 'connection timeout'
+
+
+def get_tracert_result(ip_address):
+    p = subprocess.run('tracert {}'.format(ip_address),
+                       stdin=subprocess.PIPE,
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE,
+                       shell=True)
+    out = p.stdout.decode('gbk')
+    print(out)
+    return out
 
 
 def SetCallBack(x):
-    WriteFile(GetSystemDate()+".txt",x+'\n')
+    WriteFile(GetSystemDate() + ".txt", x + '\n')
 
-def main():
+
+def ping():
     read_path = r'ip.txt'
     ip_list = ReadIP(read_path)
-    print("**********************执行开始***********************\n",str(len(ip_list))+"个IP开始执行")
+    print("**********************ping执行开始***********************\n", str(len(ip_list)) + "个IP开始执行")
     pool = multiprocessing.Pool(processes=50)
     for i in range(len(ip_list)):
-        t=pool.apply_async(func=get_ping_result,args=(ip_list[i].replace('\n', ''),),
-        callback = SetCallBack)
+        t = pool.apply_async(func=get_ping_result, args=(ip_list[i].replace('\n', ''),),
+                             callback=SetCallBack)
     pool.close();
     pool.join();
-    print("--------------------执行结束------------------------")
+    print("--------------------ping执行结束------------------------")
+    sys.exit()
+
+
+def tracert():
+    read_path = r'ip.txt'
+    ip_list = ReadIP(read_path)
+    print("**********************tracert执行开始***********************\n", str(len(ip_list)) + "个IP开始执行")
+    pool = multiprocessing.Pool(processes=10)
+    for i in range(len(ip_list)):
+        t = pool.apply_async(func=get_tracert_result, args=(ip_list[i].replace('\n', ''),),
+                             callback=SetCallBack)
+    pool.close()
+    pool.join()
+    print("--------------------tracert执行结束------------------------")
     sys.exit()
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    tracert()
