@@ -1,3 +1,4 @@
-ping和tracert多进程脚本
+ping和tracert多进程和多线程脚本
+优先使用multi_thread_ping_chinese.py脚本，里面有ping和tracert操作，只需要在main函数修改即可切换
 
 
