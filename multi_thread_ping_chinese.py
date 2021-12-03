@@ -1,24 +1,25 @@
 # -*- coding: utf-8 -*-
 import os
-import subprocess
+from concurrent.futures import ThreadPoolExecutor
 import re
+import subprocess
 import datetime
 import multiprocessing
 import sys
 
 
-def GetSystemDate():
+def get_system_date():
     ISOTIMEFORMAT = '%Y-%m-%d-%H'
     cur_time = datetime.datetime.now().strftime(ISOTIMEFORMAT)
     return cur_time
 
 
-def ReadIP(read_path):
+def read_ip(read_path):
     with open(read_path, 'r') as f:
         return f.readlines()
 
 
-def WriteFile(write_path, res):
+def write_file(write_path, res):
     with open(write_path, 'a') as file_object:
         file_object.write(res)
 
@@ -70,37 +71,32 @@ def get_tracert_result(ip_address):
     return out
 
 
-def SetCallBack(x):
-    WriteFile(GetSystemDate() + ".txt", x + '\n')
+def set_call_back(x):
+    write_file(get_system_date() + ".txt", x + '\n')
 
 
 def ping():
     read_path = r'ip.txt'
-    ip_list = ReadIP(read_path)
+    ip_list = [ip.replace('\n', '') for ip in read_ip(read_path)]
     print("**********************ping执行开始***********************\n", str(len(ip_list)) + "个IP开始执行")
-    pool = multiprocessing.Pool(processes=50)
-    for i in range(len(ip_list)):
-        t = pool.apply_async(func=get_ping_result, args=(ip_list[i].replace('\n', ''),),
-                             callback=SetCallBack)
-    pool.close();
-    pool.join();
+    pool = ThreadPoolExecutor(40)
+    for data in pool.map(get_ping_result, ip_list):
+        write_file(get_system_date() + ".txt", data + '\n')
     print("--------------------ping执行结束------------------------")
     sys.exit()
 
 
 def tracert():
     read_path = r'ip.txt'
-    ip_list = ReadIP(read_path)
+    ip_list = [ip.replace('\n', '') for ip in read_ip(read_path)]
     print("**********************tracert执行开始***********************\n", str(len(ip_list)) + "个IP开始执行")
-    pool = multiprocessing.Pool(processes=10)
-    for i in range(len(ip_list)):
-        t = pool.apply_async(func=get_tracert_result, args=(ip_list[i].replace('\n', ''),),
-                             callback=SetCallBack)
-    pool.close()
-    pool.join()
+    pool = ThreadPoolExecutor(40)
+    for data in pool.map(get_tracert_result, ip_list):
+        write_file(get_system_date() + ".txt", data + '\n')
     print("--------------------tracert执行结束------------------------")
     sys.exit()
 
-
+# 如果需要ping,执行ping函数，注释tracert()函数，如果需要tracert,执行tracert,注释ping函数
 if __name__ == '__main__':
-    ping()
+    #ping()
+    tracert()
